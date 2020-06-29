@@ -1,6 +1,6 @@
-const https = require('https');
 const assert = require('assert');
 const querystring = require('querystring');
+const {AbstractHttpService} = require('./AbstractHttpService');
 
 /**
  * @type {{}}
@@ -206,41 +206,7 @@ class BitBucketPullRequestOptions {
     }
 }
 
-class GameLoungeBitBucket {
-    /**
-     * @type {string}
-     */
-    #host = 'bitbucket.gamelounge.com';
-
-    /**
-     * @type {number}
-     */
-    #port = 443;
-
-    /**
-     * @type {string}
-     */
-    #basePath = '/bitbucket/rest/api/latest';
-
-    /**
-     * @type {string}
-     */
-    #login;
-
-    /**
-     * @type {string}
-     */
-    #password;
-
-    /**
-     * @param {string} login
-     * @param {string} password
-     */
-    constructor(login, password) {
-        this.#login = login;
-        this.#password = password;
-    }
-
+class BitBucketService extends AbstractHttpService {
     /**
      * @param {string} project
      * @param {string} repo
@@ -261,45 +227,10 @@ class GameLoungeBitBucket {
     getRecentRepos() {
         return this._request(`/profile/recent/repos`);
     }
-
-    /**
-     * @param {string} path
-     * @param {{}} [options = null]
-     * @returns {Promise<{}>}
-     * @private
-     */
-    _request(path, options= null) {
-        return new Promise((resolve, reject) => {
-            const authString = Buffer.from(`${this.#login}:${this.#password}`).toString('base64');
-
-            const requestOptions = {
-                host: this.#host,
-                port: this.#port,
-                path: `${this.#basePath}${path}?${options !== null ? options.toString() : ''}`,
-                headers: {
-                    Authorization: `Basic ${authString}`
-                }
-            };
-
-            https.get(requestOptions, function (resp) {
-                let body = '';
-                resp.on('data', function (data) {
-                    body += data;
-                });
-                resp.on('end', function () {
-                    resolve(JSON.parse(body));
-                })
-                resp.on('error', function (err) {
-                    reject(err);
-                });
-            });
-        });
-
-    }
 }
 
 module.exports = {
-    GameLoungeBitBucket,
+    BitBucketService,
     bitBucket,
     BitBucketPullRequestOptions
 };

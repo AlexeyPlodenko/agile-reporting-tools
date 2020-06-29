@@ -1,15 +1,54 @@
-const {GameLoungeJira} = require('./GameLoungeJira');
-const {GameLoungeBitBucket, bitBucket, BitBucketPullRequestOptions} = require('./GameLoungeBitBucket');
+const assert = require('assert');
+const args = require('yargs').argv;
+const {JiraService} = require('./JiraService');
+const {BitBucketService, bitBucket, BitBucketPullRequestOptions} = require('./BitBucketService');
+
+assert(
+    'login' in args && typeof args.login === 'string' && args.login.length,
+    'Argument "login" is missing or is empty. Example, --login=my.username .'
+);
+assert(
+    'password' in args && typeof args.password === 'string',
+    'Argument "password" is missing. Example, --password="123456" .'
+);
+assert(
+    'bitbucketHost' in args && typeof args.bitbucketHost === 'string' && args.bitbucketHost.length,
+    'Argument "bitbucketHost" is missing or is empty. Example, --bitbucketHost=bitbucket.example.com .'
+);
+assert(
+    'jiraHost' in args && typeof args.jiraHost === 'string' && args.jiraHost.length,
+    'Argument "jiraHost" is missing or is empty. Example, --jiraHost=jira.example.com .'
+);
 
 /**
  * @type {string}
  */
-const login = '';
+const login = args.login;
 
 /**
  * @type {string}
  */
-const password = '';
+const password = args.password;
+
+/**
+ * @type {string}
+ */
+const bitbucketHost = args.bitbucketHost;
+
+/**
+ * @type {string}
+ */
+const jiraHost = args.jiraHost;
+
+/**
+ * @type {string}
+ */
+const bitbucketBasePath = (args.bitBucketBasePath ? args.bitBucketBasePath : '/bitbucket/rest/api/latest/');
+
+/**
+ * @type {string}
+ */
+const jiraBasePath = (args.jiraBasePath ? args.jiraBasePath : '/jira/rest/api/latest/');
 
 /**
  * @type {string[]}
@@ -21,13 +60,11 @@ const dailyRoutines = [
 
 /**
  * @param {string} key
- * @returns {Promise<{}[]>}
+ * @returns {Promise<{}>}
  */
 async function getIssue(key) {
-    const jira = new GameLoungeJira(login, password);
-    const resp = await jira.getIssue(key);
-
-    return resp;
+    const jira = new JiraService(jiraHost, jiraBasePath, login, password);
+    return await jira.getIssue(key);
 
 }
 
@@ -35,7 +72,7 @@ async function getIssue(key) {
  * @returns {Promise<{}[]>}
  */
 async function loadMyBlockedIssues() {
-    const jira = new GameLoungeJira(login, password);
+    const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
         `project=VST AND resolution=Unresolved AND assignee=${login} AND sprint in openSprints() and sprint not in futureSprints()`
     );
@@ -71,7 +108,7 @@ async function filterBlockedIssues(issues) {
  * @returns {Promise<{}[]>}
  */
 async function loadMyIssuesInProgress() {
-    const jira = new GameLoungeJira(login, password);
+    const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
         `project=VST AND status="Development in Progress" AND assignee=${login} AND sprint in openSprints() and sprint not in futureSprints()`
     );
@@ -83,7 +120,7 @@ async function loadMyIssuesInProgress() {
  * @returns {Promise<{}[]>}
  */
 async function loadMyDoneIssues() {
-    const jira = new GameLoungeJira(login, password);
+    const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
         `project = VST`
         +` AND resolution in (Done)`
@@ -99,7 +136,7 @@ async function loadMyDoneIssues() {
  * @returns {Promise<{}[]>}
  */
 async function loadMyCancelledIssues() {
-    const jira = new GameLoungeJira(login, password);
+    const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
         `project = VST`
         +` AND resolution in (Cancelled, "Cannot Reproduce")`
@@ -115,7 +152,7 @@ async function loadMyCancelledIssues() {
  * @returns {Promise<{}[]>}
  */
 async function loadIssuesCreatedByMe() {
-    const jira = new GameLoungeJira(login, password);
+    const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
         `project = VST`
         +` AND creator in (${login})`
@@ -138,7 +175,7 @@ async function loadReviewingPullRequests(project, repository) {
     pullRequestOptions.withProperties = false;
     pullRequestOptions.addParticipant(login, bitBucket.pullRequests.role.REVIEWER);
 
-    const jira = new GameLoungeBitBucket(login, password);
+    const jira = new BitBucketService(bitbucketHost, bitbucketBasePath, login, password);
     const resp = await jira.getPullRequests(project, repository,  pullRequestOptions);
     return resp.values;
 }
@@ -147,7 +184,7 @@ async function loadReviewingPullRequests(project, repository) {
  * @returns {Promise<{}[]>}
  */
 async function loadRecentRepositories() {
-    const jira = new GameLoungeBitBucket(login, password);
+    const jira = new BitBucketService(bitbucketHost, bitbucketBasePath, login, password);
     const resp = await jira.getRecentRepos();
     return resp.values;
 }
@@ -197,5 +234,45 @@ async function loadRecentRepositories() {
         });
     }
 
-    console.log(res);
+    if (args.format === 'text') {
+        let text = [];
+
+        if (res.myTicketsDoneYesterday.length) {
+            res.myTicketsCancelledYesterday = res.myTicketsCancelledYesterday.map(item => `Cancelled ${item}`);
+            res.ticketsCreatedByMeYesterday = res.ticketsCreatedByMeYesterday.map(item => `Created ${item}`);
+
+            const yesterday = [
+                ...res.myTicketsDoneYesterday,
+                ...res.ticketsCreatedByMeYesterday,
+                ...res.myTicketsCancelledYesterday
+            ].map(item => `* ${item}\n`);
+
+            yesterday.unshift('Done yesterday:\n');
+
+            text = text.concat(yesterday);
+        }
+
+        if (res.dailyRoutines.length || res.myTicketsInProgress.length || res.reviewingPRs) {
+            res.reviewingPRs = res.reviewingPRs.map(item => `Reviewing PR ${item}`);
+
+            const today = [
+                ...res.dailyRoutines,
+                ...res.myTicketsInProgress,
+                ...res.reviewingPRs
+            ].map(item => `* ${item}\n`);
+
+            today.unshift('Planned today:\n');
+
+            text = text.concat(today);
+        }
+
+        if (res.blockedTickets.length) {
+            text.push(`Blocked tickets:\n* ${res.blockedTickets.join('\n* ')}\n`);
+        }
+
+        console.log(text.join(''));
+
+    } else {
+        console.log(res);
+    }
 })();
