@@ -120,8 +120,8 @@ async function loadMyIssuesInProgress() {
 async function loadMyDoneIssues() {
     let daysAgo;
 
-    const dow = new Date().getDay();
-    switch (dow) {
+    const todayDOW = new Date().getDay();
+    switch (todayDOW) {
         default: // any other day of the week
             daysAgo = 1;
             break;
