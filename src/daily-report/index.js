@@ -3,6 +3,7 @@ const args = require('yargs').argv;
 const {JiraService} = require('./JiraService');
 const {BitBucketService, bitBucket, BitBucketPullRequestOptions} = require('./BitBucketService');
 
+// @TODO use yargs functionality to validate the input
 assert(
     'login' in args && typeof args.login === 'string' && args.login.length,
     'Argument "login" is missing or is empty. Example, --login=my.username .'
@@ -53,10 +54,7 @@ const jiraBasePath = (args.jiraBasePath ? args.jiraBasePath : '/jira/rest/api/la
 /**
  * @type {string[]}
  */
-const dailyRoutines = [
-    'Check and report AWS load logs.',
-    'Check and report AWS error logs.'
-];
+const dailyRoutines = (args.routine ? args.routine : []);
 
 /**
  * @param {string} key
