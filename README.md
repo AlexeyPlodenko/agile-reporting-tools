@@ -30,3 +30,40 @@ bitbucketHost | (string) | Yes | The domain where your BitBucket is installed. |
 jiraHost | (string) | Yes | The domain where your JIRA is installed. | --jiraHost=jira.example.com
 routine | (string) | No | A list of routines that you can supply to be shown in the list. | --routine="Check and report AWS load logs." --routine="Check and report AWS error logs."
 format | (string) | No | By default, the output format is a JSON. You can specify "text", to output the report in the human readable format. | --password=text
+
+## Text sample output
+```
+Planned today:
+* Check and report AWS load logs.
+* Check and report AWS error logs.
+* VST-496: Finalize SpinsProcessingService implementation
+* VST-495: Reorganize files in the API repository
+* Reviewing PR Api: Feature/VST-372 slots list page (Name Surname)
+* Reviewing PR Manager: Feature/VST-372 slots list page (Name Surname)
+Blocked tickets:
+* "VST-496 Finalize SpinsProcessingService implementation" is blocked by "VST-495 Reorganize files in the API repository"
+```
+
+## JSON sample output
+```javascript
+{
+  dailyRoutines: [
+    'Check and report AWS load logs.',
+    'Check and report AWS error logs.'
+  ],
+  myTicketsInProgress: [
+    'VST-496: Finalize SpinsProcessingService implementation',
+    'VST-495: Reorganize files in the API repository'
+  ],
+  myTicketsDoneYesterday: [],
+  myTicketsCancelledYesterday: [],
+  ticketsCreatedByMeYesterday: [],
+  reviewingPRs: [
+    'Api: Feature/VST-372 slots list page (Name Surname)',
+    'Manager: Feature/VST-372 slots list page (Name Surname)'
+  ],
+  blockedTickets: [
+    '"VST-496 Finalize SpinsProcessingService implementation" is blocked by "VST-495 Reorganize files in the API repository"'
+  ]
+}
+```
