@@ -115,17 +115,33 @@ async function loadMyIssuesInProgress() {
 }
 
 /**
- * @TODO take into consideration, and if today is Monday, query for the last 3 days.
  * @returns {Promise<{}[]>}
  */
 async function loadMyDoneIssues() {
+    let daysAgo;
+
+    const dow = new Date().getDay();
+    switch (dow) {
+        default: // any other day of the week
+            daysAgo = 1;
+            break;
+
+        case 0: // Sunday
+            daysAgo = 2;
+            break;
+
+        case 1: // Monday
+            daysAgo = 3;
+            break;
+    }
+
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
         `project = VST`
         +` AND resolution in (Done)`
         +` AND assignee=${login}`
         +` AND sprint in openSprints() AND sprint not in futureSprints()`
-        +` AND status changed during (-1d, now())`
+        +` AND status changed during (-${daysAgo}d, now())`
     );
 
     return resp.issues;
