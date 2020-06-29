@@ -115,6 +115,7 @@ async function loadMyIssuesInProgress() {
 }
 
 /**
+ * @TODO take into consideration, and if today is Monday, query for the last 3 days.
  * @returns {Promise<{}[]>}
  */
 async function loadMyDoneIssues() {
