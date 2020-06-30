@@ -29,7 +29,7 @@ password | (string) | Yes | Your JIRA and BitBucket's password. Leave empty if y
 bitbucketHost | (string) | Yes | The domain where your BitBucket is installed. | --bitbucketHost=bitbucket.example.com
 jiraHost | (string) | Yes | The domain where your JIRA is installed. | --jiraHost=jira.example.com
 routine | (string) | No | A list of routines that you can supply to be shown in the list. | --routine="Check and report AWS load logs." --routine="Check and report AWS error logs."
-format | (string) | No | By default, the output format is a JSON. You can specify "text", to output the report in the human readable format. | --password=text
+format | (string) | No | By default, the output format is a JSON. You can specify "text", to output the report in the human readable format. | --format=text
 
 ## Text sample output
 ```
