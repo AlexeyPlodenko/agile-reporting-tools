@@ -1,5 +1,7 @@
 const assert = require('assert');
 const args = require('yargs').argv;
+const moment = require('moment');
+const {GoogleCalendar, GoogleCalendarListParameters} = require('./GoogleCalendar');
 const {JiraService} = require('./JiraService');
 const {BitBucketService, bitBucket, BitBucketPullRequestOptions} = require('./BitBucketService');
 
@@ -204,6 +206,23 @@ async function loadRecentRepositories() {
     return resp.values;
 }
 
+async function loadTodayMeetings() {
+    const gCalListParams = new GoogleCalendarListParameters();
+    gCalListParams.timeMin = moment().startOf('day').toDate();
+    gCalListParams.timeMax = moment().endOf('day').toDate();
+
+    const gCalendar = new GoogleCalendar();
+    let gCalListRes;
+    try {
+        gCalListRes = await gCalendar.listEvents(gCalListParams);
+
+    } catch (err) {
+        return [];
+    }
+
+    return gCalListRes.data.items;
+}
+
 (async function() {
     const res = {
         dailyRoutines: dailyRoutines,
@@ -212,12 +231,13 @@ async function loadRecentRepositories() {
         myTicketsCancelledYesterday: [],
         ticketsCreatedByMeYesterday: [],
         reviewingPRs: [],
-        blockedTickets: []
+        blockedTickets: [],
+        dailyMeetings: []
     };
 
     let issues = await loadMyBlockedIssues();
     res.blockedTickets = await filterBlockedIssues(issues);
-    
+
     issues = await loadMyIssuesInProgress();
     issues.forEach((issue) => {
         res.myTicketsInProgress.push(`${issue.key}: ${issue.fields.summary}`);
@@ -239,7 +259,6 @@ async function loadRecentRepositories() {
     });
 
     const recentRepos = await loadRecentRepositories();
-
     const total = recentRepos.length;
     for (let i = 0; i < total; i++) {
         const prs = await loadReviewingPullRequests(recentRepos[i].project.key,  recentRepos[i].slug);
@@ -249,45 +268,66 @@ async function loadRecentRepositories() {
         });
     }
 
+    issues = await loadTodayMeetings();
+    issues.forEach((event) => {
+        const startTime = moment(event.start.dateTime || event.start.date).format('h:mm');
+        res.dailyMeetings.push(`Event "${startTime} ${event.summary}"`);
+    });
+
+
     if (args.format === 'text') {
-        let text = [];
-
-        if (res.myTicketsDoneYesterday.length) {
-            res.myTicketsCancelledYesterday = res.myTicketsCancelledYesterday.map(item => `Cancelled ${item}`);
-            res.ticketsCreatedByMeYesterday = res.ticketsCreatedByMeYesterday.map(item => `Created ${item}`);
-
-            const yesterday = [
-                ...res.myTicketsDoneYesterday,
-                ...res.ticketsCreatedByMeYesterday,
-                ...res.myTicketsCancelledYesterday
-            ].map(item => `* ${item}\n`);
-
-            yesterday.unshift('Done yesterday:\n');
-
-            text = text.concat(yesterday);
-        }
-
-        if (res.dailyRoutines.length || res.myTicketsInProgress.length || res.reviewingPRs) {
-            res.reviewingPRs = res.reviewingPRs.map(item => `Reviewing PR ${item}`);
-
-            const today = [
-                ...res.dailyRoutines,
-                ...res.myTicketsInProgress,
-                ...res.reviewingPRs
-            ].map(item => `* ${item}\n`);
-
-            today.unshift('Planned today:\n');
-
-            text = text.concat(today);
-        }
-
-        if (res.blockedTickets.length) {
-            text.push(`Blocked tickets:\n* ${res.blockedTickets.join('\n* ')}\n`);
-        }
-
-        console.log(text.join(''));
-
+        outputText(res);
     } else {
-        console.log(res);
+        outputJSON(res);
     }
 })();
+
+/**
+ * @param {{}} res
+ */
+function outputText(res) {
+    let text = [];
+
+    if (res.myTicketsDoneYesterday.length) {
+        res.myTicketsCancelledYesterday = res.myTicketsCancelledYesterday.map(item => `Cancelled ${item}`);
+        res.ticketsCreatedByMeYesterday = res.ticketsCreatedByMeYesterday.map(item => `Created ${item}`);
+
+        const yesterday = [
+            ...res.myTicketsDoneYesterday,
+            ...res.ticketsCreatedByMeYesterday,
+            ...res.myTicketsCancelledYesterday
+        ].map(item => `* ${item}\n`);
+
+        yesterday.unshift('Done yesterday:\n');
+
+        text = text.concat(yesterday);
+    }
+
+    if (res.dailyRoutines.length || res.myTicketsInProgress.length || res.reviewingPRs) {
+        res.reviewingPRs = res.reviewingPRs.map(item => `Reviewing PR ${item}`);
+
+        const today = [
+            ...res.dailyRoutines,
+            ...res.myTicketsInProgress,
+            ...res.reviewingPRs,
+            ...res.dailyMeetings
+        ].map(item => `* ${item}\n`);
+
+        today.unshift('Planned today:\n');
+
+        text = text.concat(today);
+    }
+
+    if (res.blockedTickets.length) {
+        text.push(`Blocked tickets:\n* ${res.blockedTickets.join('\n* ')}\n`);
+    }
+
+    console.log(text.join(''));
+}
+
+/**
+ * @param {{}} res
+ */
+function outputJSON(res) {
+    console.log(res);
+}
