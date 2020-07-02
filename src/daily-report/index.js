@@ -147,8 +147,7 @@ async function loadMyDoneIssues() {
 
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
-        `project = VST`
-        +` AND resolution in (Done)`
+        `resolution in (Done)`
         +` AND assignee=${user}`
         +` AND sprint in openSprints() AND sprint not in futureSprints()`
         +` AND status changed during (-${daysAgo}d, now())`
@@ -163,8 +162,7 @@ async function loadMyDoneIssues() {
 async function loadMyCancelledIssues() {
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
-        `project = VST`
-        +` AND resolution in (Cancelled, "Cannot Reproduce")`
+        `resolution in (Cancelled, "Cannot Reproduce")`
         +` AND assignee=${user}`
         +` AND sprint in openSprints() AND sprint not in futureSprints()`
         +` AND status changed during (-1d, now())`
@@ -179,8 +177,7 @@ async function loadMyCancelledIssues() {
 async function loadIssuesCreatedByMe() {
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
-        `project = VST`
-        +` AND creator in (${user})`
+        `creator in (${user})`
         +` AND created >= -1d`
     );
 
