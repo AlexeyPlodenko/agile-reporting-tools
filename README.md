@@ -23,6 +23,9 @@ The script collects following information:
 node ./src/daily-report/index.js --format=text --login=my.username --password=123456 --bitbucketHost=bitbucket.example.com --jiraHost=jira.example.com --routine="Check and report AWS load logs." --routine="Check and report AWS error logs."`
 
 ## To enable Google Calendar
+
+NB! Google calendar does not work with a user argument supplied.
+
 1. Go to the page https://developers.google.com/calendar/quickstart/nodejs and click the "Enable the Google Calendar API" blue button in the middle.
 
 1.1. Choose "Desktop app" from the drop-down list and click CREATE.
@@ -46,6 +49,7 @@ bitbucketHost | (string) | Yes | The domain where your BitBucket is installed. |
 jiraHost | (string) | Yes | The domain where your JIRA is installed. | --jiraHost=jira.example.com
 routine | (string) | No | A list of routines that you can supply to be shown in the list. | --routine="Check and report AWS load logs." --routine="Check and report AWS error logs."
 format | (string) | No | By default, the output format is a JSON. You can specify "text", to output the report in the human readable format. | --format=text
+user | (string) | No | By default, the report is made for the user supplied in the login argument. However, this is possible to supply another username, instead of the login in this argument, to make the report for this user. NB! Google Calendar would not be in the report in this case, as this is not yet implemented. | --user=some.one
 
 ## Text sample output
 ```

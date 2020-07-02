@@ -22,6 +22,10 @@ assert(
     'jiraHost' in args && typeof args.jiraHost === 'string' && args.jiraHost.length,
     'Argument "jiraHost" is missing or is empty. Example, --jiraHost=jira.example.com .'
 );
+assert(
+    !('user' in args) || (typeof args.user === 'string' && args.user.length),
+    'Argument "user" is mentioned, but is empty. Example, --user=some.one .'
+);
 
 /**
  * @type {string}
@@ -32,6 +36,11 @@ const login = args.login;
  * @type {string}
  */
 const password = args.password;
+
+/**
+ * @type {(string|undefined)}
+ */
+const user = ('user' in args ? args.user : login);
 
 /**
  * @type {string}
@@ -65,7 +74,6 @@ const dailyRoutines = (args.routine ? args.routine : []);
 async function getIssue(key) {
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     return await jira.getIssue(key);
-
 }
 
 /**
@@ -74,7 +82,7 @@ async function getIssue(key) {
 async function loadMyBlockedIssues() {
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
-        `project=VST AND resolution=Unresolved AND assignee=${login} AND sprint in openSprints() and sprint not in futureSprints()`
+        `project=VST AND resolution=Unresolved AND assignee=${user} AND sprint in openSprints() and sprint not in futureSprints()`
     );
 
     return resp.issues;
@@ -110,7 +118,7 @@ async function filterBlockedIssues(issues) {
 async function loadMyIssuesInProgress() {
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
-        `project=VST AND status="Development in Progress" AND assignee=${login} AND sprint in openSprints() and sprint not in futureSprints()`
+        `project=VST AND status="Development in Progress" AND assignee=${user} AND sprint in openSprints() and sprint not in futureSprints()`
     );
 
     return resp.issues;
@@ -141,7 +149,7 @@ async function loadMyDoneIssues() {
     const resp = await jira.searchUsingJQL(
         `project = VST`
         +` AND resolution in (Done)`
-        +` AND assignee=${login}`
+        +` AND assignee=${user}`
         +` AND sprint in openSprints() AND sprint not in futureSprints()`
         +` AND status changed during (-${daysAgo}d, now())`
     );
@@ -157,7 +165,7 @@ async function loadMyCancelledIssues() {
     const resp = await jira.searchUsingJQL(
         `project = VST`
         +` AND resolution in (Cancelled, "Cannot Reproduce")`
-        +` AND assignee=${login}`
+        +` AND assignee=${user}`
         +` AND sprint in openSprints() AND sprint not in futureSprints()`
         +` AND status changed during (-1d, now())`
     );
@@ -172,7 +180,7 @@ async function loadIssuesCreatedByMe() {
     const jira = new JiraService(jiraHost, jiraBasePath, login, password);
     const resp = await jira.searchUsingJQL(
         `project = VST`
-        +` AND creator in (${login})`
+        +` AND creator in (${user})`
         +` AND created >= -1d`
     );
 
@@ -190,7 +198,7 @@ async function loadReviewingPullRequests(project, repository) {
     pullRequestOptions.setStateToOpen();
     pullRequestOptions.withAttributes = false;
     pullRequestOptions.withProperties = false;
-    pullRequestOptions.addParticipant(login, bitBucket.pullRequests.role.REVIEWER);
+    pullRequestOptions.addParticipant(user, bitBucket.pullRequests.role.REVIEWER);
 
     const jira = new BitBucketService(bitbucketHost, bitbucketBasePath, login, password);
     const resp = await jira.getPullRequests(project, repository,  pullRequestOptions);
@@ -268,12 +276,15 @@ async function loadTodayMeetings() {
         });
     }
 
-    issues = await loadTodayMeetings();
-    issues.forEach((event) => {
-        const startTime = moment(event.start.dateTime || event.start.date).format('HH:mm');
-        res.dailyMeetings.push(`Event at ${startTime} "${event.summary}"`);
-    });
+    if (user === login) {
+        // ATM works only for the logged in user
 
+        issues = await loadTodayMeetings();
+        issues.forEach((event) => {
+            const startTime = moment(event.start.dateTime || event.start.date).format('HH:mm');
+            res.dailyMeetings.push(`Event at ${startTime} "${event.summary}"`);
+        });
+    }
 
     if (args.format === 'text') {
         outputText(res);
