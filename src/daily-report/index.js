@@ -270,8 +270,8 @@ async function loadTodayMeetings() {
 
     issues = await loadTodayMeetings();
     issues.forEach((event) => {
-        const startTime = moment(event.start.dateTime || event.start.date).format('h:mm');
-        res.dailyMeetings.push(`Event "${startTime} ${event.summary}"`);
+        const startTime = moment(event.start.dateTime || event.start.date).format('HH:mm');
+        res.dailyMeetings.push(`Event at ${startTime} "${event.summary}"`);
     });
 
 
