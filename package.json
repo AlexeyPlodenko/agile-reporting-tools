@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "googleapis": "^39.2.0",
+    "googleapis": "^129.0.0",
     "moment": "^2.29.4",
     "yargs": "^15.3.1"
   }
